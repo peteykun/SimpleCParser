@@ -72,7 +72,8 @@ class Calc(Parser):
         'RSHIFT','DIVIDE_ASSIGN','DOT','QUEST','DECR',
         'BAND','BNOT','MOD','ADDRESS','NOT','CONST',
         'VOLATILE','STRUCT','UNION','LBOX','RBOX',
-        'FCONST','CCONST','SCONST','ELLIPSIS'
+        'FCONST','CCONST','SCONST','ELLIPSIS','AUTO',
+        'REGISTER','STATIC','EXTERN','TYPEDEF'
         )
 
     # Operators
@@ -159,6 +160,21 @@ class Calc(Parser):
         return t
     def t_VOLATILE(self, t):
         r'volatile'
+        return t
+    def t_AUTO(self, t):
+        r'auto'
+        return t
+    def t_REGISTER(self, t):
+        r'register'
+        return t
+    def t_STATIC(self, t):
+        r'static'
+        return t
+    def t_EXTERN(self, t):
+        r'extern'
+        return t
+    def t_TYPEDEF(self, t):
+        r'typedef'
         return t
 
     # Conditionals
@@ -267,33 +283,76 @@ class Calc(Parser):
         ('right','NOT','BNOT','UPLUS','UMINUS','INCR','DECR','ADDRESS','INDIREC'),
         )
 
-    # def p_translation_unit(self, p):
-    #     """
-    #     translation-unit : external-declaration
-    #                     | external-declaration translation-unit
-    #     """
-    #
-    # def p_external_declaration(self, p):
-    #     """
-    #     external-declaration : function-definition
-    #                         | declaration
-    #     """
+    def p_translation_unit(self, p):
+        """
+        translation-unit : external-declaration
+                        | external-declaration translation-unit
+        """
+        print 'translation unit'
 
-    def p_statement_function(self, p):
-        'statement : function-definition'
+    def p_external_declaration(self, p):
+        """
+        external-declaration : function-definition
+                            | declaration
+        """
+        print 'external declaration'
+
+    def p_declaration(self, p):
+        """
+        declaration : declaration-specifiers SEMICOL
+                   | declaration-specifiers init-declarator-list SEMICOL
+        """
+        print 'declaration'
+
+    def p_init_declarators(self, p):
+        """
+        init-declarator-list : init-declarator COMMA init-declarator-list
+                        | init-declarator
+        """
+
+    def p_init_declarator(self, p):
+        """
+        init-declarator : declarator
+                       | declarator initializer
+        """
+        print 'init-declarator'
+
+    def p_initializer(self, p):
+        """
+        initializer : assignment-expression
+                   | LPAREN initializer-list RPAREN
+                   | LPAREN initializer-list COMMA RPAREN
+        """
+        print 'initializer'
+
+    def p_initializer_list(self, p):
+        """
+        initializer-list : initializer
+                        | initializer COMMA initializer-list
+        """
+
+    # def p_statement_function(self, p):
+    #     'statement : function-definition'
 
     # Compound statements
     def p_statement_compound(self, p):
         'statement : compound-statement'
+        print 'statement'
 
     def p_compound_statement(self, p):
-        'compound-statement : LCURLY statement-sequence RCURLY'
-
-    def p_statement_sequence_continue(self, p):
-        'statement-sequence : statement-sequence statement'
+        """
+        compound-statement : LCURLY statement-list RCURLY
+                          |  LCURLY declaration-list RCURLY
+                          |  LCURLY declaration-list statement-list RCURLY
+                          | LCURLY RCURLY
+        """
+        print 'compound-statement'
 
     def p_statement_sequence(self, p):
-        'statement-sequence : '
+        """
+        statement-list : statement-list statement
+                          | statement
+        """
 
     # Types
     def p_type_specifier(self, p):
@@ -309,34 +368,56 @@ class Calc(Parser):
                       | UNSIGNED
                       | struct-or-union-specifier
         """
+                      #| typedef-name
+        print 'type-specifier'
+
+    def p_typedef_name(self, p):
+        'typedef-name : IDENT'
+        print 'typedef-name'
+
+    # Storage classes
+    def p_storage_class_specifier(self, p):
+        """
+        storage-class-specifier : AUTO
+                               | REGISTER
+                               | STATIC
+                               | EXTERN
+                               | TYPEDEF
+        """
+        print 'storage-class-specifier'
 
     def p_type_qualifier(self, p):
         """
         type-qualifier : CONST
                       | VOLATILE
         """
+        print 'type-qualifier'
 
     # Structs and unions
     def p_statement_struct_or_union(self, p): #todo
         'statement : struct-or-union-specifier'
+        print 'statement'
 
     def p_struct_or_union_specifier(self, p):
         """
         struct-or-union-specifier : STRUCT IDENT LCURLY struct-declarations RCURLY
                                  | UNION IDENT LCURLY struct-declarations RCURLY
         """
+        print 'struct-or-union-specifier'
 
     def p_struct_or_union_specifier_noident(self, p):
         """
         struct-or-union-specifier : STRUCT LCURLY struct-declarations RCURLY
                                  | UNION LCURLY struct-declarations RCURLY
         """
+        print 'struct-or-union-specifier'
 
     def p_struct_or_union_specifier_onlyident(self, p):
         """
         struct-or-union-specifier : STRUCT IDENT
                                  | UNION IDENT
         """
+        print 'struct-or-union-specifier'
 
     def p_struct_declarations(self, p):
         """
@@ -348,6 +429,7 @@ class Calc(Parser):
         """
         struct-declaration : specifier-qualifier struct-declarator-list
         """
+        print 'struct-declaration'
 
     def p_specifier_qualifier(self, p):
         """
@@ -355,12 +437,14 @@ class Calc(Parser):
                            | type-qualifier specifier-qualifier
                            |
         """
+        print 'specifier-qualifier'
 
     def p_struct_declarator_list(self, p):
         """
         struct-declarator-list : struct-declarator-list COMMA struct-declarator
                               | struct-declarator
         """
+        print 'struct-declarator-list'
 
     def p_struct_declarator(self, p):
         """
@@ -368,24 +452,28 @@ class Calc(Parser):
                          | declarator COLON expression
                          | COLON expression
         """
+        print 'struct-declarator'
 
-    def p_declarator2(self, p):
+    def p_declarator(self, p):
         """
         declarator : direct-declarator
                   | pointer direct-declarator
         """
+        print 'declarator'
 
     def p_pointer(self, p):
         """
         pointer : TIMES type-qualifier-list pointer
                | TIMES type-qualifier-list
         """
+        print 'pointer'
 
     def p_type_qualifier_list(self, p):
         """
         type-qualifier-list : type-qualifier type-qualifier-list
                            |
         """
+        print 'type-qualifier-list'
 
     def p_direct_declarator(self, p):
         """
@@ -397,114 +485,137 @@ class Calc(Parser):
                          | direct-declarator LPAREN identifier-list RPAREN
                          | direct-declarator LPAREN RPAREN
         """
-        #todo function declaration
+        print 'direct-declarator'
 
     def p_parameter_type_list(self, p):
         """
         parameter-type-list : parameter-list
                            | parameter-list COMMA ELLIPSIS
         """
+        print 'parameter-type-list'
 
     def p_parameter_list(self, p):
         """
         parameter-list : parameter-declaration
                       | parameter-declaration COMMA parameter-list
         """
+        print 'parameter-list'
+
     def p_parameter_declaration(self, p):
         """
         parameter-declaration : declaration-specifiers declarator
                              | declaration-specifiers
         """
+        print 'parameter-declaration'
 
     def p_identifier_list(self, p):
         """
         identifier-list : IDENT
                        | IDENT COMMA identifier-list
         """
+        print 'identifier-list'
 
     # Functions
     def p_function_definition(self, p):
-        'function-definition : declarator compound-statement'
+        """
+        function-definition : declaration-specifiers declarator declaration-list compound-statement
+                           | declaration-specifiers declarator compound-statement
+                           | declarator declaration-list compound-statement
+                           | declarator compound-statement
+        """
+        print 'function-definition'
+
+    def p_declaration_list(self, p):
+        """
+        declaration-list : declaration declaration-list
+                        | declaration
+        """
 
     def p_declaration_specifiers(self, p):
         """
         declaration-specifiers : type-specifier declaration-specifiers
                               | type-qualifier declaration-specifiers
-                              |
+                              | storage-class-specifier declaration-specifiers
+                              | type-specifier
+                              | type-qualifier
+                              | storage-class-specifier
         """
-
-    def p_declarator(self, p):
-        'declarator : declaration-specifiers IDENT LPAREN argument-list RPAREN'
-
-    def p_argument_list(self, p):
-        'argument-list : type-specifier IDENT COMMA argument-list'
-
-    def p_argument_list_one(self, p):
-        'argument-list : type-specifier IDENT'
-
-    def p_argument_list_none(self, p):
-        'argument-list : '
+        print 'declaration-specifiers'
 
     # Conditional statements
     def p_statement_if(self, p):
         'statement : IF LPAREN expression RPAREN statement'
         if p[3] == 1     : p[0] = p[5]
+        print 'statement'
 
     def p_statement_ifelse(self, p):
         'statement : IF LPAREN expression RPAREN statement ELSE statement'
         if p[3] == 1     : p[0] = p[5]
         else             : p[0] = p[7]
+        print 'statement'
 
     def p_statement_switch(self, p):
         'statement : SWITCH LPAREN expression RPAREN statement'
+        print 'statement'
 
     # Iteration statements
     def p_statement_while(self, p):
         'statement : WHILE LPAREN expression RPAREN statement'
         if p[3] == 1     : p[0] = p[5]
+        print 'statement'
 
     def p_statement_do_while(self, p):
         'statement : DO statement WHILE LPAREN expression RPAREN SEMICOL'
         if p[3] == 1     : p[0] = p[5]
+        print 'statement'
 
     def p_statement_for(self, p):
         'statement : FOR LPAREN expression SEMICOL expression SEMICOL expression RPAREN statement'
         if p[3] == 1     : p[0] = p[9]
+        print 'statement'
 
     # Labeled statments
     def p_statement_label(self, p):
         'statement : IDENT COLON statement SEMICOL'
         print p[1]
+        print 'statement'
 
     def p_statement_case(self, p):
         'statement : CASE expression COLON statement SEMICOL'
         print p[1]
+        print 'statement'
 
     def p_statement_default(self, p):
         'statement : DEFAULT COLON statement SEMICOL'
         print p[1]
+        print 'statement'
 
     # Jump statements
     def p_statement_break(self, p):
         'statement : BREAK SEMICOL'
+        print 'statement'
 
     def p_statement_continue(self, p):
         'statement : CONT SEMICOL'
+        print 'statement'
 
     def p_statement_return(self, p):
         'statement : RETURN expression SEMICOL'
         print p[2]
+        print 'statement'
 
     # Expression statement
     def p_statement_expr(self, p):
         'statement : expression SEMICOL'
         print p[1]
+        print 'statement'
 
     # Conditional expression
     def p_expression_conditional(self, p):
         'expression : expression QUEST expression COLON expression'
         if p[1] == 1     : p[0] = p[3]
         else             : p[0] = p[5]
+        print 'expression'
 
     # Reference
     def p_expression_reference(self, p):
@@ -512,6 +623,7 @@ class Calc(Parser):
         expression : expression DOT IDENT
                   | expression ARROW IDENT
         """
+        print 'expression'
 
     # Binary operations
     def p_expression_binop(self, p):
@@ -546,24 +658,29 @@ class Calc(Parser):
         elif p[2] == '>' : p[0] = int(p[1] > p[3])
         elif p[2] == '<=': p[0] = int(p[1] <= p[3])
         elif p[2] == '<' : p[0] = int(p[1] < p[3])
+        print 'expression'
 
     # Assignment expression
-    def p_statement_assign(self, p):
+    def p_expression_assignment(self, p):
+        'expression : IDENT assignment-expression'
+
+    def p_assignment_expression(self, p):
         """
-        expression : IDENT ASSIGN expression
-                  | IDENT PLUS_ASSIGN expression
-                  | IDENT MINUS_ASSIGN expression
-                  | IDENT TIMES_ASSIGN expression
-                  | IDENT DIVIDE_ASSIGN expression
-                  | IDENT MOD_ASSIGN expression
-                  | IDENT LSHIFT_ASSIGN expression
-                  | IDENT RSHIFT_ASSIGN expression
-                  | IDENT BAND_ASSIGN expression
-                  | IDENT BOR_ASSIGN expression
-                  | IDENT BXOR_ASSIGN expression
+        assignment-expression : ASSIGN expression
+                  | PLUS_ASSIGN expression
+                  | MINUS_ASSIGN expression
+                  | TIMES_ASSIGN expression
+                  | DIVIDE_ASSIGN expression
+                  | MOD_ASSIGN expression
+                  | LSHIFT_ASSIGN expression
+                  | RSHIFT_ASSIGN expression
+                  | BAND_ASSIGN expression
+                  | BOR_ASSIGN expression
+                  | BXOR_ASSIGN expression
         """
-        p[0] = p[3]
-        self.names[p[1]] = p[3]
+        p[0] = p[2]
+        self.names[p[1]] = p[2]
+        print 'expression'
 
     # Unary operations
     def p_expression_unary(self, p):
@@ -578,15 +695,18 @@ class Calc(Parser):
                   | ADDRESS expression
         """
         p[0] = -p[2]
+        print 'expression'
 
     # Parentheses
     def p_expression_group(self, p):
         'expression : LPAREN expression RPAREN'
         p[0] = p[2]
+        print 'expression'
 
     # Empty expression
     def p_expression_empty(self, p):
         'expression : '
+        print 'expression'
 
     # Literals
     def p_expression_literal(self, p):
@@ -597,6 +717,7 @@ class Calc(Parser):
                   | SCONST
         """
         p[0] = p[1]
+        print 'expression'
 
     def p_expression_name(self, p):
         'expression : IDENT'
@@ -605,6 +726,7 @@ class Calc(Parser):
         except LookupError:
             print "Undefined name '%s'" % p[1]
             p[0] = 0
+        print 'expression'
 
     def p_error(self, p):
         print "Syntax error at '%s'" % p.value
