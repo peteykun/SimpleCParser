@@ -17,11 +17,6 @@ import ply.lex as lex
 import ply.yacc as yacc
 import os, sys, argparse
 
-#class Node:
-#    def __init__(self, name, children):
-#        self.name = name
-#        self.children = children
-
 class Parser:
     """
     Base class for a lexer/parser that has the rules defined as methods
@@ -56,7 +51,7 @@ class Parser:
             s = sys.stdin.read()
             yacc.parse(s)
 
-class Calc(Parser):
+class SimpleCParser(Parser):
     tokens = (
         'PLUS','MINUS','TIMES','DIVIDE','ASSIGN',
         'LPAREN','RPAREN','SEMICOL','COLON','LCURLY',
@@ -747,5 +742,5 @@ if __name__ == '__main__':
     argparser.add_argument('--interactive', action='store_true', help='Interactive mode')
     args = argparser.parse_args()
 
-    calc = Calc()
+    calc = SimpleCParser()
     calc.run(args)
