@@ -52,6 +52,46 @@ class Parser:
             yacc.parse(s)
 
 class SimpleCParser(Parser):
+    # scope stack implementation based on pycparser
+
+    # _scope_stack[-1] is the topmost (current) scope
+    # _scope_stack[n][name] is True if name is a type in that scope
+    # _scope_stack[n][name] is False if name is an identifier in that scope
+    _scope_stack = [dict()]
+
+    def _push_scope(self):
+        self._push_scope.append(dict())
+
+    def _add_typedef_name(self, name):
+        # If get() returns False, it was declared as an identifier
+        if not self._scope_stack[-1].get(name, True):
+            self._parse_error("Typedef %s previously declared as non-typedef"
+                              % name)
+
+        self._scope_stack[-1][name] = True
+
+    def _add_identifier(self, name):
+        # If get() returns True, it was declared as a type name
+        if self._scope_stack[-1].get(name, False):
+            self._parse_error("Non-typedef %s previously declared as typedef"
+                              % name)
+
+        self._scope_stack[-1][name] = False
+
+    def _is_type_in_scope(self, name):
+        # Necessary to do this because typedefs can be masked by identifiers
+        for scope in reversed(self._scope_stack):
+            in_scope = scope.get(name)
+            if in_scope is not None: return in_scope
+
+        return False
+
+    def _pop_scope(self):
+        assert len(self._scope_stack) > 1
+        self._scope_stack.pop()
+
+    _type_definitions = []
+
     tokens = (
         'PLUS','MINUS','TIMES','DIVIDE','ASSIGN',
         'LPAREN','RPAREN','SEMICOL','COLON','LCURLY',
@@ -68,7 +108,7 @@ class SimpleCParser(Parser):
         'BAND','BNOT','MOD','NOT','CONST','ENUM','GOTO',
         'VOLATILE','STRUCT','UNION','LBOX','RBOX',
         'FCONST','CCONST','SCONST','ELLIPSIS','AUTO',
-        'REGISTER','STATIC','EXTERN','TYPEDEF','SIZEOF',
+        'REGISTER','STATIC','EXTERN','TYPEDEF','SIZEOF','TYPE_NAME'
         )
 
     # Operators
@@ -82,8 +122,6 @@ class SimpleCParser(Parser):
     t_SEMICOL  = r';'
     t_COLON    = r':'
     t_COMMA    = r','
-    t_LCURLY   = r'\{'
-    t_RCURLY   = r'\}'
     t_LBOX     = r'\['
     t_RBOX     = r'\]'
     t_BAND     = r'&'
@@ -101,6 +139,17 @@ class SimpleCParser(Parser):
     t_DOT      = r'\.'
     t_ARROW    = r'->'
     t_ELLIPSIS = r'\.\.\.'
+
+    # Curly braces create/destroy scopes
+    def t_LCURLY(self, t):
+        r'\{'
+        # self._push_scope()
+        return t
+
+    def t_RCURLY(self, t):
+        r'\}'
+        # self._pop_scope()
+        return t
 
     # Assignments
     t_ASSIGN        = r'='
@@ -228,6 +277,10 @@ class SimpleCParser(Parser):
     # Names
     def t_IDENT(self, t):
         r'[a-zA-Z_][a-zA-Z0-9_]*'
+
+        if t.value in self._type_definitions:
+            t.type = 'TYPE_NAME'
+
         return t
 
     def t_CCONST(self, t):
@@ -268,17 +321,35 @@ class SimpleCParser(Parser):
         print "Illegal character '%s'" % t.value[0]
         t.lexer.skip(1)
 
+    def _compose(self, p):
+        i = 1
+        result = []
+
+        try:
+            while p[i] is not None:
+                if isinstance(p[i], list):
+                    result += p[i]
+                else:
+                    result += [p[i]]
+                i += 1
+        except IndexError:
+            pass
+
+        return result
+
     def p_translation_unit(self, p):
         """
         translation_unit : external_declaration
           | translation_unit external_declaration
         """
+        p[0] = self._compose(p)
 
     def p_external_declaration(self, p):
         """
         external_declaration : function_definition
           | declaration
         """
+        p[0] = self._compose(p)
 
     def p_function_definition(self, p):
         """
@@ -287,6 +358,7 @@ class SimpleCParser(Parser):
           | declarator declaration_list compound_statement
           | declarator compound_statement
         """
+        p[0] = self._compose(p)
 
     def p_primary_expression(self, p):
         """
@@ -297,6 +369,7 @@ class SimpleCParser(Parser):
           | SCONST
           | LPAREN expression RPAREN
         """
+        p[0] = self._compose(p)
 
     def p_postfix_expression(self, p):
         """
@@ -309,12 +382,14 @@ class SimpleCParser(Parser):
           | postfix_expression INCR
           | postfix_expression DECR
         """
+        p[0] = self._compose(p)
 
     def p_argument_expression_list(self, p):
         """
         argument_expression_list : assignment_expression
           | argument_expression_list COMMA assignment_expression
         """
+        p[0] = self._compose(p)
 
     def p_unary_expression(self, p):
         """
@@ -325,6 +400,7 @@ class SimpleCParser(Parser):
           | SIZEOF unary_expression
           | SIZEOF LPAREN type_name RPAREN
         """
+        p[0] = self._compose(p)
 
     def p_unary_operator(self, p):
         """
@@ -335,12 +411,14 @@ class SimpleCParser(Parser):
           | BNOT
           | NOT
         """
+        p[0] = self._compose(p)
 
     def p_cast_expression(self, p):
         """
         cast_expression : unary_expression
           | LPAREN type_name RPAREN cast_expression
         """
+        p[0] = self._compose(p)
 
     def p_multiplicative_expression(self, p):
         """
@@ -349,6 +427,7 @@ class SimpleCParser(Parser):
           | multiplicative_expression DIVIDE cast_expression
           | multiplicative_expression MOD cast_expression
         """
+        p[0] = self._compose(p)
 
     def p_additive_expression(self, p):
         """
@@ -356,6 +435,7 @@ class SimpleCParser(Parser):
           | additive_expression PLUS multiplicative_expression
           | additive_expression MINUS multiplicative_expression
         """
+        p[0] = self._compose(p)
 
     def p_shift_expression(self, p):
         """
@@ -363,6 +443,7 @@ class SimpleCParser(Parser):
           | shift_expression LSHIFT additive_expression
           | shift_expression RSHIFT additive_expression
         """
+        p[0] = self._compose(p)
 
     def p_relational_expression(self, p):
         """
@@ -372,6 +453,7 @@ class SimpleCParser(Parser):
           | relational_expression LTEQ shift_expression
           | relational_expression GTEQ shift_expression
         """
+        p[0] = self._compose(p)
 
     def p_equality_expression(self, p):
         """
@@ -379,48 +461,56 @@ class SimpleCParser(Parser):
           | equality_expression EQ relational_expression
           | equality_expression NEQ relational_expression
         """
+        p[0] = self._compose(p)
 
     def p_and_expression(self, p):
         """
         and_expression : equality_expression
           | and_expression BAND equality_expression
         """
+        p[0] = self._compose(p)
 
     def p_exclusive_or_expression(self, p):
         """
         exclusive_or_expression : and_expression
           | exclusive_or_expression BXOR and_expression
         """
+        p[0] = self._compose(p)
 
     def p_inclusive_or_expression(self, p):
         """
         inclusive_or_expression : exclusive_or_expression
           | inclusive_or_expression BOR exclusive_or_expression
         """
+        p[0] = self._compose(p)
 
     def p_logical_and_expression(self, p):
         """
         logical_and_expression : inclusive_or_expression
           | logical_and_expression AND inclusive_or_expression
         """
+        p[0] = self._compose(p)
 
     def p_logical_or_expression(self, p):
         """
         logical_or_expression : logical_and_expression
           | logical_or_expression OR logical_and_expression
         """
+        p[0] = self._compose(p)
 
     def p_conditional_expression(self, p):
         """
         conditional_expression : logical_or_expression
           | logical_or_expression QUEST expression COLON conditional_expression
         """
+        p[0] = self._compose(p)
 
     def p_assignment_expression(self, p):
         """
         assignment_expression : conditional_expression
           | unary_expression assignment_operator assignment_expression
         """
+        p[0] = self._compose(p)
 
     def p_assignment_operator(self, p):
         """
@@ -436,23 +526,31 @@ class SimpleCParser(Parser):
           | BXOR_ASSIGN
           | BOR_ASSIGN
         """
+        p[0] = self._compose(p)
 
     def p_expression(self, p):
         """
         expression : assignment_expression
           | expression COMMA assignment_expression
         """
+        p[0] = self._compose(p)
 
     def p_constant_expression(self, p):
         """
         constant_expression : conditional_expression
         """
+        p[0] = self._compose(p)
 
     def p_declaration(self, p):
         """
         declaration : declaration_specifiers SEMICOL
           | declaration_specifiers init_declarator_list SEMICOL
         """
+        p[0] = self._compose(p)
+
+        if 'typedef' in p[0]:
+            print p[0]
+            self._type_definitions += [p[0][-2]]
 
     def p_declaration_specifiers(self, p):
         """
@@ -463,18 +561,21 @@ class SimpleCParser(Parser):
           | type_qualifier
           | type_qualifier declaration_specifiers
         """
+        p[0] = self._compose(p)
 
     def p_init_declarator_list(self, p):
         """
         init_declarator_list : init_declarator
           | init_declarator_list COMMA init_declarator
         """
+        p[0] = self._compose(p)
 
     def p_init_declarator(self, p):
         """
         init_declarator : declarator
           | declarator ASSIGN initializer
         """
+        p[0] = self._compose(p)
 
     def p_storage_class_specifier(self, p):
         """
@@ -484,6 +585,7 @@ class SimpleCParser(Parser):
           | AUTO
           | REGISTER
         """
+        p[0] = self._compose(p)
 
     def p_type_specifier(self, p):
         """
@@ -498,8 +600,8 @@ class SimpleCParser(Parser):
           | UNSIGNED
           | struct_or_union_specifier
           | enum_specifier
+          | TYPE_NAME
         """
-        # | TYPE_NAME TODO
 
     def p_struct_or_union_specifier(self, p):
         """
@@ -507,23 +609,27 @@ class SimpleCParser(Parser):
           | struct_or_union LCURLY struct_declaration_list RCURLY
           | struct_or_union IDENT
         """
+        p[0] = self._compose(p)
 
     def p_struct_or_union(self, p):
         """
         struct_or_union : STRUCT
           | UNION
         """
+        p[0] = self._compose(p)
 
     def p_struct_declaration_list(self, p):
         """
         struct_declaration_list : struct_declaration
           | struct_declaration_list struct_declaration
         """
+        p[0] = self._compose(p)
 
     def p_struct_declaration(self, p):
         """
         struct_declaration : specifier_qualifier_list struct_declarator_list SEMICOL
         """
+        p[0] = self._compose(p)
 
     def p_specifier_qualifier_list(self, p):
         """
@@ -532,12 +638,14 @@ class SimpleCParser(Parser):
           | type_qualifier specifier_qualifier_list
           | type_qualifier
         """
+        p[0] = self._compose(p)
 
     def p_struct_declarator_list(self, p):
         """
         struct_declarator_list : struct_declarator
           | struct_declarator_list COMMA struct_declarator
         """
+        p[0] = self._compose(p)
 
     def p_struct_declarator(self, p):
         """
@@ -545,6 +653,7 @@ class SimpleCParser(Parser):
           | COLON constant_expression
           | declarator COLON constant_expression
         """
+        p[0] = self._compose(p)
 
     def p_enum_specifier(self, p):
         """
@@ -552,30 +661,35 @@ class SimpleCParser(Parser):
           | ENUM IDENT LCURLY enumerator_list RCURLY
           | ENUM IDENT
         """
+        p[0] = self._compose(p)
 
     def p_enumerator_list(self, p):
         """
         enumerator_list : enumerator
           | enumerator_list COMMA enumerator
         """
+        p[0] = self._compose(p)
 
     def p_enumerator(self, p):
         """
         enumerator : IDENT
           | IDENT ASSIGN constant_expression
         """
+        # self._add_identifier(p[1])
 
     def p_type_qualifier(self, p):
         """
         type_qualifier : CONST
           | VOLATILE
         """
+        p[0] = self._compose(p)
 
     def p_declarator(self, p):
         """
         declarator : pointer direct_declarator
           | direct_declarator
         """
+        p[0] = self._compose(p)
 
     def p_direct_declarator(self, p):
         """
@@ -587,6 +701,7 @@ class SimpleCParser(Parser):
           | direct_declarator LPAREN identifier_list RPAREN
           | direct_declarator LPAREN RPAREN
         """
+        p[0] = self._compose(p)
 
     def p_pointer(self, p):
         """
@@ -595,24 +710,28 @@ class SimpleCParser(Parser):
           | TIMES pointer
           | TIMES type_qualifier_list pointer
         """
+        p[0] = self._compose(p)
 
     def p_type_qualifier_list(self, p):
         """
         type_qualifier_list : type_qualifier
           | type_qualifier_list type_qualifier
         """
+        p[0] = self._compose(p)
 
     def p_parameter_type_list(self, p):
         """
         parameter_type_list : parameter_list
           | parameter_list COMMA ELLIPSIS
         """
+        p[0] = self._compose(p)
 
     def p_parameter_list(self, p):
         """
         parameter_list : parameter_declaration
           | parameter_list COMMA parameter_declaration
         """
+        p[0] = self._compose(p)
 
     def p_parameter_declaration(self, p):
         """
@@ -620,18 +739,21 @@ class SimpleCParser(Parser):
           | declaration_specifiers abstract_declarator
           | declaration_specifiers
         """
+        p[0] = self._compose(p)
 
     def p_identifier_list(self, p):
         """
         identifier_list : IDENT
           | identifier_list COMMA IDENT
         """
+        p[0] = self._compose(p)
 
     def p_type_name(self, p):
         """
         type_name : specifier_qualifier_list
           | specifier_qualifier_list abstract_declarator
         """
+        p[0] = self._compose(p)
 
     def p_abstract_declarator(self, p):
         """
@@ -639,6 +761,7 @@ class SimpleCParser(Parser):
           | direct_abstract_declarator
           | pointer direct_abstract_declarator
         """
+        p[0] = self._compose(p)
 
     def p_direct_abstract_declarator(self, p):
         """
@@ -652,6 +775,7 @@ class SimpleCParser(Parser):
           | direct_abstract_declarator LPAREN RPAREN
           | direct_abstract_declarator LPAREN parameter_type_list RPAREN
         """
+        p[0] = self._compose(p)
 
     def p_initializer(self, p):
         """
@@ -659,12 +783,14 @@ class SimpleCParser(Parser):
           | LCURLY initializer_list RCURLY
           | LCURLY initializer_list COMMA RCURLY
         """
+        p[0] = self._compose(p)
 
     def p_initializer_list(self, p):
         """
         initializer_list : initializer
           | initializer_list COMMA initializer
         """
+        p[0] = self._compose(p)
 
     def p_statement(self, p):
         """
@@ -675,6 +801,7 @@ class SimpleCParser(Parser):
           | iteration_statement
           | jump_statement
         """
+        p[0] = self._compose(p)
 
     def p_labeled_statement(self, p):
         """
@@ -682,6 +809,7 @@ class SimpleCParser(Parser):
           | CASE constant_expression COLON statement
           | DEFAULT COLON statement
         """
+        p[0] = self._compose(p)
 
     def p_compound_statement(self, p):
         """
@@ -690,24 +818,28 @@ class SimpleCParser(Parser):
           | LCURLY declaration_list RCURLY
           | LCURLY declaration_list statement_list RCURLY
         """
+        p[0] = self._compose(p)
 
     def p_declaration_list(self, p):
         """
         declaration_list : declaration
           | declaration_list declaration
         """
+        p[0] = self._compose(p)
 
     def p_statement_list(self, p):
         """
         statement_list : statement
           | statement_list statement
         """
+        p[0] = self._compose(p)
 
     def p_expression_statement(self, p):
         """
         expression_statement : SEMICOL
           | expression SEMICOL
         """
+        p[0] = self._compose(p)
 
     def p_selection_statement(self, p):
         """
@@ -715,6 +847,7 @@ class SimpleCParser(Parser):
           | IF LPAREN expression RPAREN statement ELSE statement
           | SWITCH LPAREN expression RPAREN statement
         """
+        p[0] = self._compose(p)
 
     def p_iteration_statement(self, p):
         """
@@ -723,6 +856,7 @@ class SimpleCParser(Parser):
           | FOR LPAREN expression_statement expression_statement RPAREN statement
           | FOR LPAREN expression_statement expression_statement expression RPAREN statement
         """
+        p[0] = self._compose(p)
 
     def p_jump_statement(self, p):
         """
@@ -732,6 +866,7 @@ class SimpleCParser(Parser):
           | RETURN SEMICOL
           | RETURN expression SEMICOL
         """
+        p[0] = self._compose(p)
 
     def p_error(self, p):
         print "Syntax error at '%s'" % p.value
@@ -742,5 +877,6 @@ if __name__ == '__main__':
     argparser.add_argument('--interactive', action='store_true', help='Interactive mode')
     args = argparser.parse_args()
 
+    # Build the parser
     calc = SimpleCParser()
     calc.run(args)
