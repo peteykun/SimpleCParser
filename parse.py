@@ -92,24 +92,66 @@ class SimpleCParser(Parser):
 
     _type_definitions = []
 
-    tokens = (
-        'PLUS','MINUS','TIMES','DIVIDE','ASSIGN',
-        'LPAREN','RPAREN','SEMICOL','COLON','LCURLY',
-        'RCURLY','COMMA','IF','ELSE','SWITCH','CASE',
-        'DEFAULT','WHILE','DO','FOR','BREAK','CONTINUE',
-        'RETURN','GT','GTEQ','LT','LTEQ','EQ','NEQ',
-        'VOID','CHAR','SHORT','INT','LONG','FLOAT',
-        'DOUBLE','SIGNED','UNSIGNED','IDENT','ICONST',
-        'INCR','OR','RSHIFT_ASSIGN','TIMES_ASSIGN',
-        'BOR_ASSIGN','PLUS_ASSIGN','LSHIFT_ASSIGN',
-        'BXOR_ASSIGN','BOR','LSHIFT','BXOR','ARROW',
-        'BAND_ASSIGN','MINUS_ASSIGN','AND','MOD_ASSIGN',
-        'RSHIFT','DIVIDE_ASSIGN','DOT','QUEST','DECR',
-        'BAND','BNOT','MOD','NOT','CONST','ENUM','GOTO',
-        'VOLATILE','STRUCT','UNION','LBOX','RBOX',
-        'FCONST','CCONST','SCONST','ELLIPSIS','AUTO',
-        'REGISTER','STATIC','EXTERN','TYPEDEF','SIZEOF','TYPE_NAME'
-        )
+    keywords = (
+        '_BOOL','_COMPLEX','AUTO','BREAK','CASE','CHAR','CONST',
+        'CONTINUE','DEFAULT','DO','DOUBLE','ELSE','ENUM','EXTERN',
+        'FLOAT','FOR','GOTO','IF','INT','LONG','REGISTER',
+        'RETURN','SHORT','SIGNED','SIZEOF','STATIC','STRUCT',
+        'SWITCH','TYPEDEF','UNION','UNSIGNED','VOID','VOLATILE',
+        'WHILE',
+    )
+
+    keyword_map = {}
+    for keyword in keywords:
+        if keyword == '_BOOL':
+            keyword_map['_Bool'] = keyword
+        elif keyword =='_Complex':
+            keyword_map['_Complex'] = keyword
+        else:
+            keyword_map[keyword.lower()] = keyword
+    print keyword_map.keys()
+
+    tokens = keywords + (
+        # Identifiers
+        'IDENT',
+
+        # Type identifiers (typedefs)
+        'TYPE_NAME',
+
+        # Constants
+        'ICONST','FCONST','CCONST','SCONST',
+
+        # Operators
+        'PLUS','MINUS','TIMES','DIVIDE','MOD',
+        'BAND','BOR','BNOT','BXOR','LSHIFT','RSHIFT',
+        'AND','OR','NOT',
+        'GT','GTEQ','LT','LTEQ','EQ','NEQ',
+
+        # Assignment
+        'ASSIGN','TIMES_ASSIGN','DIVIDE_ASSIGN','MOD_ASSIGN',
+        'PLUS_ASSIGN','MINUS_ASSIGN',
+        'LSHIFT_ASSIGN','RSHIFT_ASSIGN',
+        'BAND_ASSIGN','BOR_ASSIGN','BXOR_ASSIGN',
+
+        # Increment/decrement
+        'INCR','DECR',
+
+        # Structure dereference (->)
+        'ARROW',
+
+        # Conditional operator (?)
+        'QUEST',
+
+        # Delimiters
+        'LPAREN','RPAREN',      # ( )
+        'LBOX','RBOX',          # [ ]
+        'LCURLY','RCURLY',      # { }
+        'COMMA','DOT',          # , .
+        'SEMICOL','COLON',      # ; :
+
+        # Ellipsis (...)
+        'ELLIPSIS',
+    )
 
     # Operators
     t_PLUS     = r'\+'
@@ -139,17 +181,8 @@ class SimpleCParser(Parser):
     t_DOT      = r'\.'
     t_ARROW    = r'->'
     t_ELLIPSIS = r'\.\.\.'
-
-    # Curly braces create/destroy scopes
-    def t_LCURLY(self, t):
-        r'\{'
-        # self._push_scope()
-        return t
-
-    def t_RCURLY(self, t):
-        r'\}'
-        # self._pop_scope()
-        return t
+    t_LCURLY   = r'\{'
+    t_RCURLY   = r'\}'
 
     # Assignments
     t_ASSIGN        = r'='
@@ -164,108 +197,6 @@ class SimpleCParser(Parser):
     t_BOR_ASSIGN    = r'\|='
     t_BXOR_ASSIGN   = r'\^='
 
-    # Types
-    def t_VOID(self, t):
-        r'void'
-        return t
-    def t_CHAR(self, t):
-        r'char'
-        return t
-    def t_SHORT(self, t):
-        r'short'
-        return t
-    def t_INT(self, t):
-        r'int'
-        return t
-    def t_LONG(self, t):
-        r'long'
-        return t
-    def t_FLOAT(self, t):
-        r'float'
-        return t
-    def t_DOUBLE(self, t):
-        r'double'
-        return t
-    def t_SIGNED(self, t):
-        r'signed'
-        return t
-    def t_UNSIGNED(self, t):
-        r'unsigned'
-        return t
-    def t_STRUCT(self, t):
-        r'struct'
-        return t
-    def t_UNION(self, t):
-        r'union'
-        return t
-    def t_ENUM(self, t):
-        r'enum'
-        return t
-    def t_CONST(self, t):
-        r'const'
-        return t
-    def t_VOLATILE(self, t):
-        r'volatile'
-        return t
-    def t_AUTO(self, t):
-        r'auto'
-        return t
-    def t_REGISTER(self, t):
-        r'register'
-        return t
-    def t_STATIC(self, t):
-        r'static'
-        return t
-    def t_EXTERN(self, t):
-        r'extern'
-        return t
-    def t_TYPEDEF(self, t):
-        r'typedef'
-        return t
-    def t_SIZEOF(self, t):
-        r'sizeof'
-        return t
-
-    # Conditionals
-    def t_IF(self, t):
-        r'if'
-        return t
-    def t_ELSE(self, t):
-        r'else'
-        return t
-    def t_SWITCH(self, t):
-        r'switch'
-        return t
-    def t_CASE(self, t):
-        r'case'
-        return t
-    def t_DEFAULT(self, t):
-        r'default'
-        return t
-    def t_GOTO(self, t):
-        r'goto'
-        return t
-
-    # Loops
-    def t_WHILE(self, t):
-        r'while'
-        return t
-    def t_DO(self, t):
-        r'do'
-        return t
-    def t_FOR(self, t):
-        r'for'
-        return t
-    def t_BREAK(self, t):
-        r'break'
-        return t
-    def t_CONTINUE(self, t):
-        r'continue'
-        return t
-    def t_RETURN(self, t):
-        r'return'
-        return t
-
     # Comparison
     t_GT      = r'>'
     t_GTEQ    = r'>='
@@ -278,7 +209,9 @@ class SimpleCParser(Parser):
     def t_IDENT(self, t):
         r'[a-zA-Z_][a-zA-Z0-9_]*'
 
-        if t.value in self._type_definitions:
+        if t.value in self.keyword_map.keys():
+            t.type = self.keyword_map[t.value]
+        elif t.value in self._type_definitions:
             t.type = 'TYPE_NAME'
 
         return t
@@ -549,8 +482,9 @@ class SimpleCParser(Parser):
         p[0] = self._compose(p)
 
         if 'typedef' in p[0]:
-            print p[0]
             self._type_definitions += [p[0][-2]]
+
+        print p[0]    
 
     def p_declaration_specifiers(self, p):
         """
@@ -601,6 +535,8 @@ class SimpleCParser(Parser):
           | struct_or_union_specifier
           | enum_specifier
           | TYPE_NAME
+          | _BOOL
+          | _COMPLEX
         """
 
     def p_struct_or_union_specifier(self, p):
