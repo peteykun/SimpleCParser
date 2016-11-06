@@ -10,6 +10,9 @@
 #   https://github.com/dabeaz/ply/blob/master/example/newclasscalc/calc.py
 # - ANSI C grammar by Jutta Degener
 #   https://www.lysator.liu.se/c/ANSI-C-grammar-y.html
+#
+# Pre-parsing instructions:
+# http://eli.thegreenplace.net/2015/on-parsing-c-type-declarations-and-fake-headers
 # -----------------------------------------------------------------------------
 
 import readline
@@ -484,7 +487,7 @@ class SimpleCParser(Parser):
         if 'typedef' in p[0]:
             self._type_definitions += [p[0][-2]]
 
-        print p[0]    
+        print p[0]
 
     def p_declaration_specifiers(self, p):
         """
