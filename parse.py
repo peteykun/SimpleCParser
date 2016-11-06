@@ -14,7 +14,7 @@ sys.path.insert(0,"../..")
 import readline
 import ply.lex as lex
 import ply.yacc as yacc
-import os
+import os, sys
 
 #class Node:
 #    def __init__(self, name, children):
@@ -47,13 +47,9 @@ class Parser:
                   tabmodule=self.tabmodule)
 
     def run(self):
-        while 1:
-            try:
-                s = raw_input('calc > ')
-            except EOFError:
-                break
-            if not s: continue
-            yacc.parse(s)
+        s = sys.stdin.read()
+        # s = raw_input('calc > ')
+        yacc.parse(s)
 
 
 class Calc(Parser):
@@ -331,9 +327,6 @@ class Calc(Parser):
                         | initializer COMMA initializer-list
         """
 
-    # def p_statement_function(self, p):
-    #     'statement : function-definition'
-
     # Compound statements
     def p_statement_compound(self, p):
         'statement : compound-statement'
@@ -368,7 +361,7 @@ class Calc(Parser):
                       | UNSIGNED
                       | struct-or-union-specifier
         """
-                      #| typedef-name
+        # | typedef-name
         print 'type-specifier'
 
     def p_typedef_name(self, p):
@@ -402,19 +395,9 @@ class Calc(Parser):
         """
         struct-or-union-specifier : STRUCT IDENT LCURLY struct-declarations RCURLY
                                  | UNION IDENT LCURLY struct-declarations RCURLY
-        """
-        print 'struct-or-union-specifier'
-
-    def p_struct_or_union_specifier_noident(self, p):
-        """
-        struct-or-union-specifier : STRUCT LCURLY struct-declarations RCURLY
+                                 | STRUCT LCURLY struct-declarations RCURLY
                                  | UNION LCURLY struct-declarations RCURLY
-        """
-        print 'struct-or-union-specifier'
-
-    def p_struct_or_union_specifier_onlyident(self, p):
-        """
-        struct-or-union-specifier : STRUCT IDENT
+                                 | STRUCT IDENT
                                  | UNION IDENT
         """
         print 'struct-or-union-specifier'
@@ -545,14 +528,14 @@ class Calc(Parser):
     # Conditional statements
     def p_statement_if(self, p):
         'statement : IF LPAREN expression RPAREN statement'
-        if p[3] == 1     : p[0] = p[5]
-        print 'statement'
+        # if p[3] == 1     : p[0] = p[5]
+        # print 'statement'
 
     def p_statement_ifelse(self, p):
         'statement : IF LPAREN expression RPAREN statement ELSE statement'
-        if p[3] == 1     : p[0] = p[5]
-        else             : p[0] = p[7]
-        print 'statement'
+        # if p[3] == 1     : p[0] = p[5]
+        # else             : p[0] = p[7]
+        # print 'statement'
 
     def p_statement_switch(self, p):
         'statement : SWITCH LPAREN expression RPAREN statement'
@@ -561,33 +544,33 @@ class Calc(Parser):
     # Iteration statements
     def p_statement_while(self, p):
         'statement : WHILE LPAREN expression RPAREN statement'
-        if p[3] == 1     : p[0] = p[5]
+        # if p[3] == 1     : p[0] = p[5]
         print 'statement'
 
     def p_statement_do_while(self, p):
         'statement : DO statement WHILE LPAREN expression RPAREN SEMICOL'
-        if p[3] == 1     : p[0] = p[5]
+        # if p[3] == 1     : p[0] = p[5]
         print 'statement'
 
     def p_statement_for(self, p):
         'statement : FOR LPAREN expression SEMICOL expression SEMICOL expression RPAREN statement'
-        if p[3] == 1     : p[0] = p[9]
+        # if p[3] == 1     : p[0] = p[9]
         print 'statement'
 
     # Labeled statments
     def p_statement_label(self, p):
         'statement : IDENT COLON statement SEMICOL'
-        print p[1]
+        # print p[1]
         print 'statement'
 
     def p_statement_case(self, p):
         'statement : CASE expression COLON statement SEMICOL'
-        print p[1]
+        # print p[1]
         print 'statement'
 
     def p_statement_default(self, p):
         'statement : DEFAULT COLON statement SEMICOL'
-        print p[1]
+        # print p[1]
         print 'statement'
 
     # Jump statements
@@ -601,7 +584,7 @@ class Calc(Parser):
 
     def p_statement_return(self, p):
         'statement : RETURN expression SEMICOL'
-        print p[2]
+        # print p[2]
         print 'statement'
 
     # Expression statement
@@ -613,8 +596,8 @@ class Calc(Parser):
     # Conditional expression
     def p_expression_conditional(self, p):
         'expression : expression QUEST expression COLON expression'
-        if p[1] == 1     : p[0] = p[3]
-        else             : p[0] = p[5]
+        # if p[1] == 1     : p[0] = p[3]
+        # else             : p[0] = p[5]
         print 'expression'
 
     # Reference
@@ -648,16 +631,16 @@ class Calc(Parser):
                   | expression RSHIFT expression
                   | expression COMMA expression
         """
-        if p[2] == '+'   : p[0] = p[1] + p[3]
-        elif p[2] == '-' : p[0] = p[1] - p[3]
-        elif p[2] == '*' : p[0] = p[1] * p[3]
-        elif p[2] == '/' : p[0] = p[1] / p[3]
-        elif p[2] == '==': p[0] = int(p[1] == p[3])
-        elif p[2] == '!=': p[0] = int(p[1] != p[3])
-        elif p[2] == '>=': p[0] = int(p[1] >= p[3])
-        elif p[2] == '>' : p[0] = int(p[1] > p[3])
-        elif p[2] == '<=': p[0] = int(p[1] <= p[3])
-        elif p[2] == '<' : p[0] = int(p[1] < p[3])
+        # if p[2] == '+'   : p[0] = p[1] + p[3]
+        # elif p[2] == '-' : p[0] = p[1] - p[3]
+        # elif p[2] == '*' : p[0] = p[1] * p[3]
+        # elif p[2] == '/' : p[0] = p[1] / p[3]
+        # elif p[2] == '==': p[0] = int(p[1] == p[3])
+        # elif p[2] == '!=': p[0] = int(p[1] != p[3])
+        # elif p[2] == '>=': p[0] = int(p[1] >= p[3])
+        # elif p[2] == '>' : p[0] = int(p[1] > p[3])
+        # elif p[2] == '<=': p[0] = int(p[1] <= p[3])
+        # elif p[2] == '<' : p[0] = int(p[1] < p[3])
         print 'expression'
 
     # Assignment expression
@@ -678,8 +661,8 @@ class Calc(Parser):
                   | BOR_ASSIGN expression
                   | BXOR_ASSIGN expression
         """
-        p[0] = p[2]
-        self.names[p[1]] = p[2]
+        # p[0] = p[2]
+        # self.names[p[1]] = p[2]
         print 'expression'
 
     # Unary operations
@@ -694,13 +677,13 @@ class Calc(Parser):
                   | NOT expression
                   | ADDRESS expression
         """
-        p[0] = -p[2]
+        # p[0] = -p[2]
         print 'expression'
 
     # Parentheses
     def p_expression_group(self, p):
         'expression : LPAREN expression RPAREN'
-        p[0] = p[2]
+        # p[0] = p[2]
         print 'expression'
 
     # Empty expression
@@ -716,16 +699,16 @@ class Calc(Parser):
                   | CCONST
                   | SCONST
         """
-        p[0] = p[1]
+        # p[0] = p[1]
         print 'expression'
 
     def p_expression_name(self, p):
         'expression : IDENT'
-        try:
-            p[0] = self.names[p[1]]
-        except LookupError:
-            print "Undefined name '%s'" % p[1]
-            p[0] = 0
+        # try:
+        #     p[0] = self.names[p[1]]
+        # except LookupError:
+        #     print "Undefined name '%s'" % p[1]
+        #     p[0] = 0
         print 'expression'
 
     def p_error(self, p):
