@@ -246,6 +246,24 @@ class SimpleCParser(Parser):
 
         return result
 
+    precedence = (
+        ('left','COMMA'),
+        ('right','ASSIGN','PLUS_ASSIGN','MINUS_ASSIGN','TIMES_ASSIGN','DIVIDE_ASSIGN','MOD_ASSIGN','LSHIFT_ASSIGN','RSHIFT_ASSIGN','BAND_ASSIGN','BOR_ASSIGN','BXOR_ASSIGN'),
+        ('right','CONDITIONAL'),
+        ('left','OR'),
+        ('left','AND'),
+        ('left','BOR'),
+        ('left','BXOR'),
+        ('left','BAND'),
+        ('left','EQ','NEQ'),
+        ('left','LT','LTEQ','GT','GTEQ'),
+        ('left','LSHIFT','RSHIFT'),
+        ('left','PLUS','MINUS'),
+        ('left','TIMES','DIVIDE','MOD'),
+        ('right','NOT','BNOT','INCR','DECR'), # 'UMINUS','UPLUS','ADDRESS','INDIREC','CAST'
+        ('left','DOT','ARROW')
+    )
+
     def p_translation_unit(self, p):
         """
         translation_unit : external_declaration
@@ -313,7 +331,7 @@ class SimpleCParser(Parser):
         unary_expression : postfix_expression
           | INCR unary_expression
           | DECR unary_expression
-          | unary_operator cast_expression
+          | unary_operator multiplicative_expression
           | SIZEOF unary_expression
           | SIZEOF LPAREN type_name RPAREN
         """
@@ -332,93 +350,44 @@ class SimpleCParser(Parser):
 
     def p_cast_expression(self, p):
         """
-        cast_expression : unary_expression
-          | LPAREN type_name RPAREN cast_expression
+        multiplicative_expression : unary_expression
+          | LPAREN type_name RPAREN multiplicative_expression
         """
         p[0] = self._compose(p)
 
     def p_multiplicative_expression(self, p):
         """
-        multiplicative_expression : cast_expression
-          | multiplicative_expression TIMES cast_expression
-          | multiplicative_expression DIVIDE cast_expression
-          | multiplicative_expression MOD cast_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_additive_expression(self, p):
-        """
-        additive_expression : multiplicative_expression
-          | additive_expression PLUS multiplicative_expression
-          | additive_expression MINUS multiplicative_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_shift_expression(self, p):
-        """
-        shift_expression : additive_expression
-          | shift_expression LSHIFT additive_expression
-          | shift_expression RSHIFT additive_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_relational_expression(self, p):
-        """
-        relational_expression : shift_expression
-          | relational_expression LT shift_expression
-          | relational_expression GT shift_expression
-          | relational_expression LTEQ shift_expression
-          | relational_expression GTEQ shift_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_equality_expression(self, p):
-        """
-        equality_expression : relational_expression
-          | equality_expression EQ relational_expression
-          | equality_expression NEQ relational_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_and_expression(self, p):
-        """
-        and_expression : equality_expression
-          | and_expression BAND equality_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_exclusive_or_expression(self, p):
-        """
-        exclusive_or_expression : and_expression
-          | exclusive_or_expression BXOR and_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_inclusive_or_expression(self, p):
-        """
-        inclusive_or_expression : exclusive_or_expression
-          | inclusive_or_expression BOR exclusive_or_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_logical_and_expression(self, p):
-        """
-        logical_and_expression : inclusive_or_expression
-          | logical_and_expression AND inclusive_or_expression
+        multiplicative_expression : multiplicative_expression TIMES multiplicative_expression
+          | multiplicative_expression DIVIDE multiplicative_expression
+          | multiplicative_expression MOD multiplicative_expression
+          | multiplicative_expression PLUS multiplicative_expression
+          | multiplicative_expression MINUS multiplicative_expression
+          | multiplicative_expression LSHIFT multiplicative_expression
+          | multiplicative_expression RSHIFT multiplicative_expression
+          | multiplicative_expression LT multiplicative_expression
+          | multiplicative_expression GT multiplicative_expression
+          | multiplicative_expression LTEQ multiplicative_expression
+          | multiplicative_expression GTEQ multiplicative_expression
+          | multiplicative_expression EQ multiplicative_expression
+          | multiplicative_expression NEQ multiplicative_expression
+          | multiplicative_expression BAND multiplicative_expression
+          | multiplicative_expression BXOR multiplicative_expression
+          | multiplicative_expression BOR multiplicative_expression
+          | multiplicative_expression AND multiplicative_expression
         """
         p[0] = self._compose(p)
 
     def p_logical_or_expression(self, p):
         """
-        logical_or_expression : logical_and_expression
-          | logical_or_expression OR logical_and_expression
+        logical_or_expression : multiplicative_expression
+          | logical_or_expression OR multiplicative_expression
         """
         p[0] = self._compose(p)
 
     def p_conditional_expression(self, p):
         """
         conditional_expression : logical_or_expression
-          | logical_or_expression QUEST expression COLON conditional_expression
+          | logical_or_expression QUEST expression COLON conditional_expression %prec CONDITIONAL
         """
         p[0] = self._compose(p)
 
