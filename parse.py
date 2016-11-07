@@ -122,7 +122,10 @@ class SimpleCParser(Parser):
         'TYPE_NAME',
 
         # Constants
-        'ICONST','FCONST','CCONST','SCONST',
+        'ICONST_DEC','ICONST_OCT','ICONST_HEX','ICONST_BIN',
+        'FCONST','FCONST_HEX',
+        'CCONST',
+        'SCONST',
 
         # Operators
         'PLUS','MINUS','TIMES','DIVIDE','MOD',
@@ -228,23 +231,35 @@ class SimpleCParser(Parser):
         return t
 
     def t_FCONST(self, t):
-        r'[+-]?\d*[.]\d+f?'
-        try:
-            t.value = float(t.value)
-        except ValueError:
-            print "Float value could not be parsed", t.value
-            t.value = 0
-
+        r'((((([0-9]*\.[0-9]+)|([0-9]+\.))([eE][-+]?[0-9]+)?)|([0-9]+([eE][-+]?[0-9]+)))[FfLl]?)'
         return t
 
-    def t_ICONST(self, t):
-        r'\d+'
-        try:
-            t.value = int(t.value)
-        except ValueError:
-            print "Integer value too large", t.value
-            t.value = 0
+    def t_FCONST_HEX(self, t):
+        r'(0[xX]([0-9a-fA-F]+|((([0-9a-fA-F]+)?\.[0-9a-fA-F]+)|([0-9a-fA-F]+\.)))([pP][+-]?[0-9]+)[FfLl]?)'
+        return t
 
+    hex_prefix = '0[xX]'
+    hex_digits = '[0-9a-fA-F]+'
+    bin_prefix = '0[bB]'
+    bin_digits = '[01]+'
+    integer_suffix_opt = r''
+    hex_constant = hex_prefix+hex_digits+integer_suffix_opt
+    bin_constant = bin_prefix+bin_digits+integer_suffix_opt
+
+    def t_ICONST_HEX(self, t):
+        r'0[xX][0-9a-fA-F]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
+        return t
+
+    def t_ICONST_BIN(self, t):
+        r'0[bB][01]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
+        return t
+
+    def t_ICONST_OCT(self, t):
+        r'0[0-7]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
+        return t
+
+    def t_ICONST_DEC(self, t):
+        r'(0|[1-9][0-9]*)(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
         return t
 
     t_ignore = " \t"
@@ -280,6 +295,8 @@ class SimpleCParser(Parser):
         """
         p[0] = self._compose(p)
 
+        print p[0]
+
     def p_external_declaration(self, p):
         """
         external_declaration : function_definition
@@ -299,9 +316,13 @@ class SimpleCParser(Parser):
     def p_primary_expression(self, p):
         """
         primary_expression : IDENT
-          | ICONST
-          | CCONST
+          | ICONST_HEX
+          | ICONST_OCT
+          | ICONST_BIN
+          | ICONST_DEC
+          | FCONST_HEX
           | FCONST
+          | CCONST
           | SCONST
           | LPAREN expression RPAREN
         """
@@ -450,7 +471,7 @@ class SimpleCParser(Parser):
 
     def p_assignment_operator(self, p):
         """
-        assignment_operator : '='
+        assignment_operator : ASSIGN
           | TIMES_ASSIGN
           | DIVIDE_ASSIGN
           | MOD_ASSIGN
@@ -486,8 +507,6 @@ class SimpleCParser(Parser):
 
         if 'typedef' in p[0]:
             self._type_definitions += [p[0][-2]]
-
-        print p[0]
 
     def p_declaration_specifiers(self, p):
         """
@@ -541,6 +560,7 @@ class SimpleCParser(Parser):
           | _BOOL
           | _COMPLEX
         """
+        p[0] = self._compose(p)
 
     def p_struct_or_union_specifier(self, p):
         """
@@ -614,7 +634,7 @@ class SimpleCParser(Parser):
         enumerator : IDENT
           | IDENT ASSIGN constant_expression
         """
-        # self._add_identifier(p[1])
+        p[0] = self._compose(p)
 
     def p_type_qualifier(self, p):
         """
@@ -809,6 +829,7 @@ class SimpleCParser(Parser):
 
     def p_error(self, p):
         print "Syntax error at '%s'" % p.value
+        sys.exit(1)
 
 if __name__ == '__main__':
     # Command line arguments
