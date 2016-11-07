@@ -263,11 +263,12 @@ class SimpleCParser(Parser):
         return t
 
     t_ignore = " \t"
+    lineno   = 0
 
     def t_newline(self, t):
         r'\n+'
         t.lexer.lineno += t.value.count("\n")
-        print t.lexer.lineno
+        self.lineno = t.lexer.lineno
 
     def t_error(self, t):
         print "Illegal character '%s' on line %d" % (t.value[0], t.lexer.lineno)
@@ -336,7 +337,9 @@ class SimpleCParser(Parser):
           | postfix_expression LPAREN RPAREN
           | postfix_expression LPAREN argument_expression_list RPAREN
           | postfix_expression DOT IDENT
+          | postfix_expression DOT TYPE_NAME
           | postfix_expression ARROW IDENT
+          | postfix_expression ARROW TYPE_NAME
           | postfix_expression INCR
           | postfix_expression DECR
         """
@@ -511,7 +514,9 @@ class SimpleCParser(Parser):
 
             levels_in =  0
             for token in p[0][-2::-1]:
-                if token == ']':
+                if token == ')':
+                    pass
+                elif token == ']':
                     levels_in += 1
                 elif token == '[':
                     levels_in -= 1
@@ -843,7 +848,7 @@ class SimpleCParser(Parser):
         p[0] = self._compose(p)
 
     def p_error(self, p):
-        print "Syntax error at '%s'" % p.value
+        print "Syntax error at '%s' on line %d" % (p.value, self.lineno)
         sys.exit(1)
 
 if __name__ == '__main__':
