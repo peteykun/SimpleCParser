@@ -238,14 +238,6 @@ class SimpleCParser(Parser):
         r'(0[xX]([0-9a-fA-F]+|((([0-9a-fA-F]+)?\.[0-9a-fA-F]+)|([0-9a-fA-F]+\.)))([pP][+-]?[0-9]+)[FfLl]?)'
         return t
 
-    hex_prefix = '0[xX]'
-    hex_digits = '[0-9a-fA-F]+'
-    bin_prefix = '0[bB]'
-    bin_digits = '[01]+'
-    integer_suffix_opt = r''
-    hex_constant = hex_prefix+hex_digits+integer_suffix_opt
-    bin_constant = bin_prefix+bin_digits+integer_suffix_opt
-
     def t_ICONST_HEX(self, t):
         r'0[xX][0-9a-fA-F]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
         return t
