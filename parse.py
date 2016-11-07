@@ -260,8 +260,8 @@ class SimpleCParser(Parser):
         ('left','LSHIFT','RSHIFT'),
         ('left','PLUS','MINUS'),
         ('left','TIMES','DIVIDE','MOD'),
-        ('right','NOT','BNOT','INCR','DECR'), # 'UMINUS','UPLUS','ADDRESS','INDIREC','CAST'
-        ('left','DOT','ARROW')
+        ('right','NOT','BNOT','INCR','DECR','UMINUS','UPLUS','INDIREC','CAST','ADDRESS'),
+        ('left','FUNC_CALL','ARR_SUBS','DOT','ARROW')
     )
 
     def p_translation_unit(self, p):
@@ -270,8 +270,6 @@ class SimpleCParser(Parser):
           | translation_unit external_declaration
         """
         p[0] = self._compose(p)
-
-        #print p[0]
 
     def p_external_declaration(self, p):
         """
@@ -289,9 +287,9 @@ class SimpleCParser(Parser):
         """
         p[0] = self._compose(p)
 
-    def p_primary_expression(self, p):
+    def p_postfix_expression(self, p):
         """
-        primary_expression : IDENT
+        arithmetic_expression : IDENT
           | ICONST_HEX
           | ICONST_OCT
           | ICONST_BIN
@@ -301,129 +299,76 @@ class SimpleCParser(Parser):
           | CCONST
           | SCONST
           | LPAREN expression RPAREN
-        """
-        p[0] = self._compose(p)
-
-    def p_postfix_expression(self, p):
-        """
-        postfix_expression : primary_expression
-          | postfix_expression LBOX expression RBOX
-          | postfix_expression LPAREN RPAREN
-          | postfix_expression LPAREN argument_expression_list RPAREN
-          | postfix_expression DOT IDENT
-          | postfix_expression DOT TYPE_NAME
-          | postfix_expression ARROW IDENT
-          | postfix_expression ARROW TYPE_NAME
-          | postfix_expression INCR
-          | postfix_expression DECR
+          | arithmetic_expression LBOX expression RBOX %prec ARR_SUBS
+          | arithmetic_expression LPAREN RPAREN %prec FUNC_CALL
+          | arithmetic_expression LPAREN argument_expression_list RPAREN %prec FUNC_CALL
+          | arithmetic_expression DOT IDENT
+          | arithmetic_expression DOT TYPE_NAME
+          | arithmetic_expression ARROW IDENT
+          | arithmetic_expression ARROW TYPE_NAME
+          | arithmetic_expression INCR
+          | arithmetic_expression DECR
+          | INCR arithmetic_expression
+          | DECR arithmetic_expression
+          | BAND arithmetic_expression %prec ADDRESS
+          | TIMES arithmetic_expression %prec INDIREC
+          | PLUS arithmetic_expression %prec UPLUS
+          | MINUS arithmetic_expression %prec UMINUS
+          | BNOT arithmetic_expression
+          | NOT arithmetic_expression
+          | SIZEOF arithmetic_expression
+          | SIZEOF LPAREN type_name RPAREN
+          | arithmetic_expression TIMES arithmetic_expression
+          | arithmetic_expression DIVIDE arithmetic_expression
+          | arithmetic_expression MOD arithmetic_expression
+          | arithmetic_expression PLUS arithmetic_expression
+          | arithmetic_expression MINUS arithmetic_expression
+          | arithmetic_expression LSHIFT arithmetic_expression
+          | arithmetic_expression RSHIFT arithmetic_expression
+          | arithmetic_expression LT arithmetic_expression
+          | arithmetic_expression GT arithmetic_expression
+          | arithmetic_expression LTEQ arithmetic_expression
+          | arithmetic_expression GTEQ arithmetic_expression
+          | arithmetic_expression EQ arithmetic_expression
+          | arithmetic_expression NEQ arithmetic_expression
+          | arithmetic_expression BAND arithmetic_expression
+          | arithmetic_expression BXOR arithmetic_expression
+          | arithmetic_expression BOR arithmetic_expression
+          | arithmetic_expression AND arithmetic_expression
+          | arithmetic_expression OR arithmetic_expression
+          | LPAREN type_name RPAREN arithmetic_expression %prec CAST
+          | arithmetic_expression QUEST expression COLON arithmetic_expression %prec CONDITIONAL
+          | arithmetic_expression ASSIGN arithmetic_expression
+          | arithmetic_expression TIMES_ASSIGN arithmetic_expression
+          | arithmetic_expression DIVIDE_ASSIGN arithmetic_expression
+          | arithmetic_expression MOD_ASSIGN arithmetic_expression
+          | arithmetic_expression PLUS_ASSIGN arithmetic_expression
+          | arithmetic_expression MINUS_ASSIGN arithmetic_expression
+          | arithmetic_expression LSHIFT_ASSIGN arithmetic_expression
+          | arithmetic_expression RSHIFT_ASSIGN arithmetic_expression
+          | arithmetic_expression BAND_ASSIGN arithmetic_expression
+          | arithmetic_expression BXOR_ASSIGN arithmetic_expression
+          | arithmetic_expression BOR_ASSIGN arithmetic_expression
         """
         p[0] = self._compose(p)
 
     def p_argument_expression_list(self, p):
         """
-        argument_expression_list : assignment_expression
-          | argument_expression_list COMMA assignment_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_unary_expression(self, p):
-        """
-        unary_expression : postfix_expression
-          | INCR unary_expression
-          | DECR unary_expression
-          | unary_operator multiplicative_expression
-          | SIZEOF unary_expression
-          | SIZEOF LPAREN type_name RPAREN
-        """
-        p[0] = self._compose(p)
-
-    def p_unary_operator(self, p):
-        """
-        unary_operator : BAND
-          | TIMES
-          | PLUS
-          | MINUS
-          | BNOT
-          | NOT
-        """
-        p[0] = self._compose(p)
-
-    def p_cast_expression(self, p):
-        """
-        multiplicative_expression : unary_expression
-          | LPAREN type_name RPAREN multiplicative_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_multiplicative_expression(self, p):
-        """
-        multiplicative_expression : multiplicative_expression TIMES multiplicative_expression
-          | multiplicative_expression DIVIDE multiplicative_expression
-          | multiplicative_expression MOD multiplicative_expression
-          | multiplicative_expression PLUS multiplicative_expression
-          | multiplicative_expression MINUS multiplicative_expression
-          | multiplicative_expression LSHIFT multiplicative_expression
-          | multiplicative_expression RSHIFT multiplicative_expression
-          | multiplicative_expression LT multiplicative_expression
-          | multiplicative_expression GT multiplicative_expression
-          | multiplicative_expression LTEQ multiplicative_expression
-          | multiplicative_expression GTEQ multiplicative_expression
-          | multiplicative_expression EQ multiplicative_expression
-          | multiplicative_expression NEQ multiplicative_expression
-          | multiplicative_expression BAND multiplicative_expression
-          | multiplicative_expression BXOR multiplicative_expression
-          | multiplicative_expression BOR multiplicative_expression
-          | multiplicative_expression AND multiplicative_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_logical_or_expression(self, p):
-        """
-        logical_or_expression : multiplicative_expression
-          | logical_or_expression OR multiplicative_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_conditional_expression(self, p):
-        """
-        conditional_expression : logical_or_expression
-          | logical_or_expression QUEST expression COLON conditional_expression %prec CONDITIONAL
-        """
-        p[0] = self._compose(p)
-
-    def p_assignment_expression(self, p):
-        """
-        assignment_expression : conditional_expression
-          | unary_expression assignment_operator assignment_expression
-        """
-        p[0] = self._compose(p)
-
-    def p_assignment_operator(self, p):
-        """
-        assignment_operator : ASSIGN
-          | TIMES_ASSIGN
-          | DIVIDE_ASSIGN
-          | MOD_ASSIGN
-          | PLUS_ASSIGN
-          | MINUS_ASSIGN
-          | LSHIFT_ASSIGN
-          | RSHIFT_ASSIGN
-          | BAND_ASSIGN
-          | BXOR_ASSIGN
-          | BOR_ASSIGN
+        argument_expression_list : arithmetic_expression
+          | argument_expression_list COMMA arithmetic_expression
         """
         p[0] = self._compose(p)
 
     def p_expression(self, p):
         """
-        expression : assignment_expression
-          | expression COMMA assignment_expression
+        expression : arithmetic_expression
+          | expression COMMA arithmetic_expression
         """
         p[0] = self._compose(p)
 
     def p_constant_expression(self, p):
         """
-        constant_expression : conditional_expression
+        constant_expression : arithmetic_expression
         """
         p[0] = self._compose(p)
 
@@ -509,16 +454,12 @@ class SimpleCParser(Parser):
 
     def p_struct_or_union_specifier(self, p):
         """
-        struct_or_union_specifier : struct_or_union IDENT LCURLY struct_declaration_list RCURLY
-          | struct_or_union LCURLY struct_declaration_list RCURLY
-          | struct_or_union IDENT
-        """
-        p[0] = self._compose(p)
-
-    def p_struct_or_union(self, p):
-        """
-        struct_or_union : STRUCT
-          | UNION
+        struct_or_union_specifier : STRUCT IDENT LCURLY struct_declaration_list RCURLY
+          | UNION IDENT LCURLY struct_declaration_list RCURLY
+          | STRUCT LCURLY struct_declaration_list RCURLY
+          | UNION LCURLY struct_declaration_list RCURLY
+          | STRUCT IDENT
+          | UNION IDENT
         """
         p[0] = self._compose(p)
 
@@ -609,10 +550,10 @@ class SimpleCParser(Parser):
 
     def p_pointer(self, p):
         """
-        pointer : TIMES
-          | TIMES type_qualifier_list
-          | TIMES pointer
-          | TIMES type_qualifier_list pointer
+        pointer : TIMES %prec INDIREC
+          | TIMES type_qualifier_list %prec INDIREC
+          | TIMES pointer %prec INDIREC
+          | TIMES type_qualifier_list pointer %prec INDIREC
         """
         p[0] = self._compose(p)
 
@@ -683,7 +624,7 @@ class SimpleCParser(Parser):
 
     def p_initializer(self, p):
         """
-        initializer : assignment_expression
+        initializer : arithmetic_expression
           | LCURLY initializer_list RCURLY
           | LCURLY initializer_list COMMA RCURLY
         """
@@ -698,20 +639,23 @@ class SimpleCParser(Parser):
 
     def p_statement(self, p):
         """
-        statement : labeled_statement
-          | compound_statement
-          | expression_statement
-          | selection_statement
-          | iteration_statement
-          | jump_statement
-        """
-        p[0] = self._compose(p)
-
-    def p_labeled_statement(self, p):
-        """
-        labeled_statement : IDENT COLON statement
+        statement : IDENT COLON statement
           | CASE constant_expression COLON statement
           | DEFAULT COLON statement
+          | compound_statement
+          | expression_statement
+          | IF LPAREN expression RPAREN statement
+          | IF LPAREN expression RPAREN statement ELSE statement
+          | SWITCH LPAREN expression RPAREN statement
+          | WHILE LPAREN expression RPAREN statement
+          | DO statement WHILE LPAREN expression RPAREN SEMICOL
+          | FOR LPAREN expression_statement expression_statement RPAREN statement
+          | FOR LPAREN expression_statement expression_statement expression RPAREN statement
+          | GOTO IDENT SEMICOL
+          | CONTINUE SEMICOL
+          | BREAK SEMICOL
+          | RETURN SEMICOL
+          | RETURN expression SEMICOL
         """
         p[0] = self._compose(p)
 
@@ -742,33 +686,6 @@ class SimpleCParser(Parser):
         """
         expression_statement : SEMICOL
           | expression SEMICOL
-        """
-        p[0] = self._compose(p)
-
-    def p_selection_statement(self, p):
-        """
-        selection_statement : IF LPAREN expression RPAREN statement
-          | IF LPAREN expression RPAREN statement ELSE statement
-          | SWITCH LPAREN expression RPAREN statement
-        """
-        p[0] = self._compose(p)
-
-    def p_iteration_statement(self, p):
-        """
-        iteration_statement : WHILE LPAREN expression RPAREN statement
-          | DO statement WHILE LPAREN expression RPAREN SEMICOL
-          | FOR LPAREN expression_statement expression_statement RPAREN statement
-          | FOR LPAREN expression_statement expression_statement expression RPAREN statement
-        """
-        p[0] = self._compose(p)
-
-    def p_jump_statement(self, p):
-        """
-        jump_statement : GOTO IDENT SEMICOL
-          | CONTINUE SEMICOL
-          | BREAK SEMICOL
-          | RETURN SEMICOL
-          | RETURN expression SEMICOL
         """
         p[0] = self._compose(p)
 
