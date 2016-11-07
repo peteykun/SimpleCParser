@@ -5068,7 +5068,7 @@ kwsalloc(trans)
   _obstack_begin ((&kwset->obstack), 0, 0, (void *(*) ()) xmalloc, (void (*) ()) free);
   kwset->words = 0;
   kwset->trie
-    = (struct trie *) ;
+    = (struct trie *) obstack_alloc(&kwset->obstack, sizeof (struct trie));
   if (!kwset->trie)
     {
       kwsfree((kwset_t) kwset);
@@ -5121,14 +5121,14 @@ kwsincr(kws, text, len)
  }
       if (!link)
  {
-   link = (struct tree *)
-                                 ;
+   link = (struct tree *) obstack_alloc(&kwset->obstack,
+                sizeof (struct tree));
    if (!link)
      return "memory exhausted";
    link->llink = 0;
    link->rlink = 0;
-   link->trie = (struct trie *)
-                                ;
+   link->trie = (struct trie *) obstack_alloc(&kwset->obstack,
+                sizeof (struct trie));
    if (!link->trie)
      return "memory exhausted";
    link->trie->accepting = 0;
@@ -5311,7 +5311,7 @@ kwsprep(kws)
       delta[i] = 255;
   if (kwset->words == 1 && kwset->trans == 0)
     {
-      kwset->target = ;
+      kwset->target = obstack_alloc(&kwset->obstack, kwset->mind);
       for (i = kwset->mind - 1, curr = kwset->trie; i >= 0; --i)
  {
    kwset->target[i] = curr->links->label;
