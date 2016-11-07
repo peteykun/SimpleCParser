@@ -260,7 +260,7 @@ class SimpleCParser(Parser):
         ('left','LSHIFT','RSHIFT'),
         ('left','PLUS','MINUS'),
         ('left','TIMES','DIVIDE','MOD'),
-        ('right','NOT','BNOT','INCR','DECR','UMINUS','UPLUS','INDIREC','CAST','ADDRESS'),
+        ('right','NOT','BNOT','INCR','DECR','UMINUS','UPLUS','INDIREC','CAST','ADDRESS','SIZEOF'),
         ('left','FUNC_CALL','ARR_SUBS','DOT','ARROW')
     )
 
