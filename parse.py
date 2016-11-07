@@ -223,7 +223,7 @@ class SimpleCParser(Parser):
         return t
 
     def t_CCONST(self, t):
-        r'\'(\\.|[^\\\'])\''
+        r'\'(\\.|\\\d+|[^\\\'])\''
         return t
 
     def t_SCONST(self, t):
@@ -267,9 +267,10 @@ class SimpleCParser(Parser):
     def t_newline(self, t):
         r'\n+'
         t.lexer.lineno += t.value.count("\n")
+        print t.lexer.lineno
 
     def t_error(self, t):
-        print "Illegal character '%s'" % t.value[0]
+        print "Illegal character '%s' on line %d" % (t.value[0], t.lexer.lineno)
         t.lexer.skip(1)
 
     def _compose(self, p):
@@ -295,7 +296,7 @@ class SimpleCParser(Parser):
         """
         p[0] = self._compose(p)
 
-        print p[0]
+        #print p[0]
 
     def p_external_declaration(self, p):
         """
@@ -506,7 +507,21 @@ class SimpleCParser(Parser):
         p[0] = self._compose(p)
 
         if 'typedef' in p[0]:
-            self._type_definitions += [p[0][-2]]
+            type_name = None
+
+            levels_in =  0
+            for token in p[0][-2::-1]:
+                if token == ']':
+                    levels_in += 1
+                elif token == '[':
+                    levels_in -= 1
+                elif levels_in == 0:
+                    type_name = token
+                    break
+
+            assert type_name is not None
+            print 'Adding %s...' % type_name
+            self._type_definitions += [type_name]
 
     def p_declaration_specifiers(self, p):
         """
