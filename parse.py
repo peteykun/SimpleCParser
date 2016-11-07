@@ -55,44 +55,8 @@ class Parser:
             yacc.parse(s)
 
 class SimpleCParser(Parser):
-    # scope stack implementation based on pycparser
-
-    # _scope_stack[-1] is the topmost (current) scope
-    # _scope_stack[n][name] is True if name is a type in that scope
-    # _scope_stack[n][name] is False if name is an identifier in that scope
-    _scope_stack = [dict()]
-
-    def _push_scope(self):
-        self._push_scope.append(dict())
-
-    def _add_typedef_name(self, name):
-        # If get() returns False, it was declared as an identifier
-        if not self._scope_stack[-1].get(name, True):
-            self._parse_error("Typedef %s previously declared as non-typedef"
-                              % name)
-
-        self._scope_stack[-1][name] = True
-
-    def _add_identifier(self, name):
-        # If get() returns True, it was declared as a type name
-        if self._scope_stack[-1].get(name, False):
-            self._parse_error("Non-typedef %s previously declared as typedef"
-                              % name)
-
-        self._scope_stack[-1][name] = False
-
-    def _is_type_in_scope(self, name):
-        # Necessary to do this because typedefs can be masked by identifiers
-        for scope in reversed(self._scope_stack):
-            in_scope = scope.get(name)
-            if in_scope is not None: return in_scope
-
-        return False
-
-    def _pop_scope(self):
-        assert len(self._scope_stack) > 1
-        self._scope_stack.pop()
-
+    # lexer implementation based on pycparser, simplified greatly
+    # assumes that type definitions are never masked
     _type_definitions = []
 
     keywords = (
