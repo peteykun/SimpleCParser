@@ -19,6 +19,33 @@ import readline
 import ply.lex as lex
 import ply.yacc as yacc
 import os, sys, argparse
+from collections import namedtuple
+
+class Lexeme:
+    def __init__(self, value):
+        self._value = value
+
+    def value(self):
+        return self._value
+
+class Sememe:
+    def __init__(self, value):
+        self._value = value
+        self._children = []
+
+    def value(self):
+        return self._value
+
+    def children(self):
+        return self._children
+
+    def add_child(self, child):
+        assert isinstance(child, Sememe)
+        self._children.append(child)
+
+def tokenify(t):
+    t.value = Lexeme(t.value)
+    return t
 
 class Parser:
     """
@@ -53,6 +80,12 @@ class Parser:
         else:
             s = sys.stdin.read()
             yacc.parse(s)
+
+    def parse_file(self, filename):
+        with open(filename, 'r+') as f:
+            s = f.read()
+
+        yacc.parse(s)
 
 class SimpleCParser(Parser):
     # lexer implementation based on pycparser, simplified greatly
@@ -124,56 +157,189 @@ class SimpleCParser(Parser):
     )
 
     # Operators
-    t_PLUS     = r'\+'
-    t_MINUS    = r'-'
-    t_TIMES    = r'\*'
-    t_DIVIDE   = r'/'
-    t_MOD      = r'%'
-    t_LPAREN   = r'\('
-    t_RPAREN   = r'\)'
-    t_SEMICOL  = r';'
-    t_COLON    = r':'
-    t_COMMA    = r','
-    t_LBOX     = r'\['
-    t_RBOX     = r'\]'
-    t_BAND     = r'&'
-    t_BOR      = r'\|'
-    t_BXOR     = r'\^'
-    t_BNOT     = r'~'
-    t_AND      = r'&&'
-    t_OR       = r'\|\|'
-    t_NOT      = r'!'
-    t_LSHIFT   = r'<<'
-    t_RSHIFT   = r'>>'
-    t_INCR     = r'\+\+'
-    t_DECR     = r'--'
-    t_QUEST    = r'\?'
-    t_DOT      = r'\.'
-    t_ARROW    = r'->'
-    t_ELLIPSIS = r'\.\.\.'
-    t_LCURLY   = r'\{'
-    t_RCURLY   = r'\}'
+    def t_ELLIPSIS(self, t):
+        r'\.\.\.'
+        return tokenify(t)
 
-    # Assignments
-    t_ASSIGN        = r'='
-    t_PLUS_ASSIGN   = r'\+='
-    t_MINUS_ASSIGN  = r'-='
-    t_TIMES_ASSIGN  = r'\*='
-    t_DIVIDE_ASSIGN = r'/='
-    t_MOD_ASSIGN    = r'%='
-    t_LSHIFT_ASSIGN = r'<<='
-    t_RSHIFT_ASSIGN = r'>>='
-    t_BAND_ASSIGN   = r'&='
-    t_BOR_ASSIGN    = r'\|='
-    t_BXOR_ASSIGN   = r'\^='
+    def t_LSHIFT_ASSIGN(self, t):
+        r'<<='
+        return tokenify(t)
 
-    # Comparison
-    t_GT      = r'>'
-    t_GTEQ    = r'>='
-    t_LT      = r'<'
-    t_LTEQ    = r'<='
-    t_EQ      = r'=='
-    t_NEQ     = r'!='
+    def t_RSHIFT_ASSIGN(self, t):
+        r'>>='
+        return tokenify(t)
+
+    def t_GTEQ(self, t):
+        r'>='
+        return tokenify(t)
+
+    def t_LTEQ(self, t):
+        r'<='
+        return tokenify(t)
+
+    def t_EQ(self, t):
+        r'=='
+        return tokenify(t)
+
+    def t_NEQ(self, t):
+        r'!='
+        return tokenify(t)
+
+    def t_AND(self, t):
+        r'&&'
+        return tokenify(t)
+
+    def t_OR(self, t):
+        r'\|\|'
+        return tokenify(t)
+
+    def t_LSHIFT(self, t):
+        r'<<'
+        return tokenify(t)
+
+    def t_RSHIFT(self, t):
+        r'>>'
+        return tokenify(t)
+
+    def t_INCR(self, t):
+        r'\+\+'
+        return tokenify(t)
+
+    def t_DECR(self, t):
+        r'--'
+        return tokenify(t)
+
+    def t_ARROW(self, t):
+        r'->'
+        return tokenify(t)
+
+    def t_PLUS_ASSIGN(self, t):
+        r'\+='
+        return tokenify(t)
+
+    def t_MINUS_ASSIGN(self, t):
+        r'-='
+        return tokenify(t)
+
+    def t_TIMES_ASSIGN(self, t):
+        r'\*='
+        return tokenify(t)
+
+    def t_DIVIDE_ASSIGN(self, t):
+        r'/='
+        return tokenify(t)
+
+    def t_MOD_ASSIGN(self, t):
+        r'%='
+        return tokenify(t)
+
+    def t_BAND_ASSIGN(self, t):
+        r'&='
+        return tokenify(t)
+
+    def t_BOR_ASSIGN(self, t):
+        r'\|='
+        return tokenify(t)
+
+    def t_BXOR_ASSIGN(self, t):
+        r'\^='
+        return tokenify(t)
+
+    def t_PLUS(self, t):
+        r'\+'
+        return tokenify(t)
+
+    def t_MINUS(self, t):
+        r'-'
+        return tokenify(t)
+
+    def t_TIMES(self, t):
+        r'\*'
+        return tokenify(t)
+
+    def t_DIVIDE(self, t):
+        r'/'
+        return tokenify(t)
+
+    def t_MOD(self, t):
+        r'%'
+        return tokenify(t)
+
+    def t_LPAREN(self, t):
+        r'\('
+        return tokenify(t)
+
+    def t_RPAREN(self, t):
+        r'\)'
+        return tokenify(t)
+
+    def t_SEMICOL(self, t):
+        r';'
+        return tokenify(t)
+
+    def t_COLON(self, t):
+        r':'
+        return tokenify(t)
+
+    def t_COMMA(self, t):
+        r','
+        return tokenify(t)
+
+    def t_LBOX(self, t):
+        r'\['
+        return tokenify(t)
+
+    def t_RBOX(self, t):
+        r'\]'
+        return tokenify(t)
+
+    def t_NOT(self, t):
+        r'!'
+        return tokenify(t)
+
+    def t_BAND(self, t):
+        r'&'
+        return tokenify(t)
+
+    def t_BOR(self, t):
+        r'\|'
+        return tokenify(t)
+
+    def t_BXOR(self, t):
+        r'\^'
+        return tokenify(t)
+
+    def t_BNOT(self, t):
+        r'~'
+        return tokenify(t)
+
+    def t_QUEST(self, t):
+        r'\?'
+        return tokenify(t)
+
+    def t_DOT(self, t):
+        r'\.'
+        return tokenify(t)
+
+    def t_LCURLY(self, t):
+        r'\{'
+        return tokenify(t)
+
+    def t_RCURLY(self, t):
+        r'\}'
+        return tokenify(t)
+
+    def t_ASSIGN(self, t):
+        r'='
+        return tokenify(t)
+
+    def t_GT(self, t):
+        r'>'
+        return tokenify(t)
+
+    def t_LT(self, t):
+        r'<'
+        return tokenify(t)
 
     # Names
     def t_IDENT(self, t):
@@ -184,39 +350,39 @@ class SimpleCParser(Parser):
         elif t.value in self._type_definitions:
             t.type = 'TYPE_NAME'
 
-        return t
+        return tokenify(t)
 
     def t_CCONST(self, t):
         r'\'(\\.|\\\d+|[^\\\'])\''
-        return t
+        return tokenify(t)
 
     def t_SCONST(self, t):
         r'"(\\.|[^\\"])*"'
-        return t
+        return tokenify(t)
 
     def t_FCONST(self, t):
         r'((((([0-9]*\.[0-9]+)|([0-9]+\.))([eE][-+]?[0-9]+)?)|([0-9]+([eE][-+]?[0-9]+)))[FfLl]?)'
-        return t
+        return tokenify(t)
 
     def t_FCONST_HEX(self, t):
         r'(0[xX]([0-9a-fA-F]+|((([0-9a-fA-F]+)?\.[0-9a-fA-F]+)|([0-9a-fA-F]+\.)))([pP][+-]?[0-9]+)[FfLl]?)'
-        return t
+        return tokenify(t)
 
     def t_ICONST_HEX(self, t):
         r'0[xX][0-9a-fA-F]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
-        return t
+        return tokenify(t)
 
     def t_ICONST_BIN(self, t):
         r'0[bB][01]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
-        return t
+        return tokenify(t)
 
     def t_ICONST_OCT(self, t):
         r'0[0-7]+(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
-        return t
+        return tokenify(t)
 
     def t_ICONST_DEC(self, t):
         r'(0|[1-9][0-9]*)(([uU]ll)|([uU]LL)|(ll[uU]?)|(LL[uU]?)|([uU][lL])|([lL][uU]?)|[uU])?'
-        return t
+        return tokenify(t)
 
     t_ignore = " \t"
     lineno   = 0
@@ -230,21 +396,60 @@ class SimpleCParser(Parser):
         print "Illegal character '%s' on line %d" % (t.value[0], t.lexer.lineno)
         t.lexer.skip(1)
 
-    def _compose(self, p):
+    atomic_symbols = ['Assignment','FuncCall','Break','Continue','ID',
+                      'StructRef','Return','Cast','UnaryOp','BinaryOp',
+                      'TernaryOp','Constant','Goto','ExprList']
+    compnd_symbols = ['FileAst','FuncDef','If','While','DoWhile',
+                      'For','Switch','Case','Compound']
+
+    def _compose(self, p, this_name=None):
+        # Compose tokens
         i = 1
-        result = []
+        tokens = []
 
         try:
             while p[i] is not None:
-                if isinstance(p[i], list):
-                    result += p[i]
-                else:
-                    result += [p[i]]
+                if isinstance(p[i], Lexeme):
+                    tokens += [p[i].value()]    # append
+                elif isinstance(p[i].tokens, list):
+                    tokens += p[i].tokens       # append
                 i += 1
         except IndexError:
             pass
 
-        return result
+        # Compose sememes
+        sememe = Sememe(this_name)
+        i = 1
+
+        if this_name in self.atomic_symbols:
+            pass
+        else:
+            if this_name is not None:
+                assert this_name in self.compnd_symbols
+
+            try:
+                while p[i] is not None:
+                    if isinstance(p[i], Lexeme):
+                        pass
+                    elif isinstance(p[i].sememe, Sememe):
+                        if p[i].sememe.value() is None:
+                            for child in p[i].sememe.children():
+                                sememe.add_child(child)
+                        else:
+                            sememe.add_child(p[i].sememe)
+                    i += 1
+            except IndexError:
+                pass
+
+        return namedtuple('literal', 'tokens sememe')(**{'tokens': tokens, \
+                                                         'sememe': sememe})
+
+    def p_file_ast(self, p):
+        'file_ast : translation_unit'
+        p[0] = self._compose(p, this_name='FileAst')
+
+        # Store the result
+        self.parse_tree = p[0]
 
     def p_translation_unit(self, p):
         """
@@ -252,8 +457,6 @@ class SimpleCParser(Parser):
           | translation_unit external_declaration
         """
         p[0] = self._compose(p)
-
-        #print p[0]
 
     def p_external_declaration(self, p):
         """
@@ -269,12 +472,23 @@ class SimpleCParser(Parser):
           | declarator declaration_list compound_statement
           | declarator compound_statement
         """
+        p[0] = self._compose(p, this_name='FuncDef')
+
+    def p_primary_expression_ident(self, p):
+        """
+        primary_expression : IDENT
+        """
+        p[0] = self._compose(p, this_name='ID')
+
+    def p_primary_expression_nest(self, p):
+        """
+        primary_expression : LPAREN expression RPAREN
+        """
         p[0] = self._compose(p)
 
     def p_primary_expression(self, p):
         """
-        primary_expression : IDENT
-          | ICONST_HEX
+        primary_expression : ICONST_HEX
           | ICONST_OCT
           | ICONST_BIN
           | ICONST_DEC
@@ -282,9 +496,8 @@ class SimpleCParser(Parser):
           | FCONST
           | CCONST
           | SCONST
-          | LPAREN expression RPAREN
         """
-        p[0] = self._compose(p)
+        p[0] = self._compose(p, this_name='Constant')
 
     def p_postfix_expression(self, p):
         """
@@ -299,7 +512,16 @@ class SimpleCParser(Parser):
           | postfix_expression INCR
           | postfix_expression DECR
         """
-        p[0] = self._compose(p)
+
+        try:
+            if p[2] == '(':
+                p[0] = self._compose(p, this_name='FuncCall')
+            elif p[2] == '.':
+                p[0] = self._compose(p, this_name='StructRef')
+            elif p[2] == '->':
+                p[0] = self._compose(p, this_name='StructRef')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_argument_expression_list(self, p):
         """
@@ -317,7 +539,12 @@ class SimpleCParser(Parser):
           | SIZEOF unary_expression
           | SIZEOF LPAREN type_name RPAREN
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='UnaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_unary_operator(self, p):
         """
@@ -335,7 +562,13 @@ class SimpleCParser(Parser):
         cast_expression : unary_expression
           | LPAREN type_name RPAREN cast_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            if p[1].value() == '(':
+                p[0] = self._compose(p, this_name='Cast')
+        except IndexError:
+            pass
 
     def p_multiplicative_expression(self, p):
         """
@@ -344,7 +577,12 @@ class SimpleCParser(Parser):
           | multiplicative_expression DIVIDE cast_expression
           | multiplicative_expression MOD cast_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_additive_expression(self, p):
         """
@@ -352,7 +590,12 @@ class SimpleCParser(Parser):
           | additive_expression PLUS multiplicative_expression
           | additive_expression MINUS multiplicative_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_shift_expression(self, p):
         """
@@ -360,7 +603,12 @@ class SimpleCParser(Parser):
           | shift_expression LSHIFT additive_expression
           | shift_expression RSHIFT additive_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_relational_expression(self, p):
         """
@@ -370,7 +618,12 @@ class SimpleCParser(Parser):
           | relational_expression LTEQ shift_expression
           | relational_expression GTEQ shift_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_equality_expression(self, p):
         """
@@ -378,56 +631,96 @@ class SimpleCParser(Parser):
           | equality_expression EQ relational_expression
           | equality_expression NEQ relational_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_and_expression(self, p):
         """
         and_expression : equality_expression
           | and_expression BAND equality_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_exclusive_or_expression(self, p):
         """
         exclusive_or_expression : and_expression
           | exclusive_or_expression BXOR and_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_inclusive_or_expression(self, p):
         """
         inclusive_or_expression : exclusive_or_expression
           | inclusive_or_expression BOR exclusive_or_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_logical_and_expression(self, p):
         """
         logical_and_expression : inclusive_or_expression
           | logical_and_expression AND inclusive_or_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_logical_or_expression(self, p):
         """
         logical_or_expression : logical_and_expression
           | logical_or_expression OR logical_and_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            assert p[2].value() == '||'
+            p[0] = self._compose(p, this_name='BinaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_conditional_expression(self, p):
         """
         conditional_expression : logical_or_expression
           | logical_or_expression QUEST expression COLON conditional_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            assert p[2].value() == '?'
+            p[0] = self._compose(p, this_name='TernaryOp')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_assignment_expression(self, p):
         """
         assignment_expression : conditional_expression
           | unary_expression assignment_operator assignment_expression
         """
-        p[0] = self._compose(p)
+
+        try:
+            p[2]
+            p[0] = self._compose(p, this_name='Assignment')
+        except IndexError:
+            p[0] = self._compose(p)
 
     def p_assignment_operator(self, p):
         """
@@ -465,11 +758,11 @@ class SimpleCParser(Parser):
         """
         p[0] = self._compose(p)
 
-        if 'typedef' in p[0]:
+        if 'typedef' in p[0].tokens:
             type_name = None
 
             levels_in =  0
-            for token in p[0][-2::-1]:
+            for token in p[0].tokens[-2::-1]:
                 if token == ')':
                     pass
                 elif token == ']':
@@ -744,7 +1037,11 @@ class SimpleCParser(Parser):
           | CASE constant_expression COLON statement
           | DEFAULT COLON statement
         """
-        p[0] = self._compose(p)
+
+        if p[1].value() == 'case' or p[1].value() == 'default':
+            p[0] = self._compose(p, this_name='Case')
+        else:
+            p[0] = self._compose(p)
 
     def p_compound_statement(self, p):
         """
@@ -753,7 +1050,7 @@ class SimpleCParser(Parser):
           | LCURLY declaration_list RCURLY
           | LCURLY declaration_list statement_list RCURLY
         """
-        p[0] = self._compose(p)
+        p[0] = self._compose(p, this_name='Compound')
 
     def p_declaration_list(self, p):
         """
@@ -782,7 +1079,11 @@ class SimpleCParser(Parser):
           | IF LPAREN expression RPAREN statement ELSE statement
           | SWITCH LPAREN expression RPAREN statement
         """
-        p[0] = self._compose(p)
+
+        if p[1].value() == 'if':
+            p[0] = self._compose(p, this_name='If')
+        elif p[1].value() == 'switch':
+            p[0] = self._compose(p, this_name='Switch')
 
     def p_iteration_statement(self, p):
         """
@@ -791,7 +1092,13 @@ class SimpleCParser(Parser):
           | FOR LPAREN expression_statement expression_statement RPAREN statement
           | FOR LPAREN expression_statement expression_statement expression RPAREN statement
         """
-        p[0] = self._compose(p)
+
+        if p[1].value() == 'while':
+            p[0] = self._compose(p, this_name='While')
+        elif p[1].value() == 'do':
+            p[0] = self._compose(p, this_name='DoWhile')
+        elif p[1].value() == 'for':
+            p[0] = self._compose(p, this_name='For')
 
     def p_jump_statement(self, p):
         """
@@ -801,10 +1108,20 @@ class SimpleCParser(Parser):
           | RETURN SEMICOL
           | RETURN expression SEMICOL
         """
-        p[0] = self._compose(p)
+
+        if p[1].value() == 'break':
+            p[0] = self._compose(p, this_name='Break')
+        elif p[1].value() == 'continue':
+            p[0] = self._compose(p, this_name='Continue')
+        elif p[1].value() == 'return':
+            p[0] = self._compose(p, this_name='Return')
+        elif p[1].value() == 'goto':
+            p[0] = self._compose(p, this_name='Goto')
+        else:
+            p[0] = self._compose(p)
 
     def p_error(self, p):
-        print "Syntax error at '%s' on line %d" % (p.value, self.lineno)
+        print "Syntax error at '%s' on line %d" % (p.value.value(), self.lineno)
         sys.exit(1)
 
 if __name__ == '__main__':
