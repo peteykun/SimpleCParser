@@ -86,11 +86,11 @@ class Parser:
             s = f.read()
 
         yacc.parse(s)
-        return parser.parse_tree.sememe
+        return self.parse_tree.sememe
 
     def parse_string(self, s):
         yacc.parse(s)
-        return parser.parse_tree.sememe
+        return self.parse_tree.sememe
 
 class SimpleCParser(Parser):
     # lexer implementation based on pycparser, simplified greatly
