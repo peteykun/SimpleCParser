@@ -22,16 +22,22 @@ import os, sys, argparse
 from collections import namedtuple
 
 class Lexeme:
-    def __init__(self, value):
+    def __init__(self, value, line_number=None):
         self._value = value
+        self._line  = line_number
 
     def value(self):
         return self._value
 
+    def line_number(self):
+        return self._line
+
 class Sememe:
     def __init__(self, value):
-        self._value = value
+        self._value    = value
         self._children = []
+        self._min_line = None
+        self._max_line = None
 
     def value(self):
         return self._value
@@ -39,12 +45,36 @@ class Sememe:
     def children(self):
         return self._children
 
+    def destroy_children(self):
+        self._children = []
+
     def add_child(self, child):
         assert isinstance(child, Sememe)
         self._children.append(child)
 
+        if self._min_line is None or child._min_line < self._min_line:
+            self._min_line = child._min_line
+
+        if self._max_line is None or child._max_line > self._max_line:
+            self._max_line = child._max_line
+
+    def add_lexeme(self, lexeme):
+        line_number = lexeme.line_number()
+
+        if self._min_line is None or line_number < self._min_line:
+            self._min_line = line_number
+
+        if self._max_line is None or line_number > self._max_line:
+            self._max_line = line_number
+
+    def get_lines(self):
+        if self._min_line is None:
+            return []
+
+        return range(self._min_line, self._max_line + 1)
+
 def tokenify(t):
-    t.value = Lexeme(t.value)
+    t.value = Lexeme(t.value, line_number=t.lexer.lineno)
     return t
 
 class Parser:
@@ -411,40 +441,30 @@ class SimpleCParser(Parser):
         # Compose tokens
         i = 1
         tokens = []
+        sememe = Sememe(this_name)
 
         try:
             while p[i] is not None:
                 if isinstance(p[i], Lexeme):
                     tokens += [p[i].value()]    # append
+                    sememe.add_lexeme(p[i])
                 elif isinstance(p[i].tokens, list):
                     tokens += p[i].tokens       # append
+                    if p[i].sememe.value() is None:
+                        for child in p[i].sememe.children():
+                            sememe.add_child(child)
+                    else:
+                        sememe.add_child(p[i].sememe)
                 i += 1
         except IndexError:
             pass
 
-        # Compose sememes
-        sememe = Sememe(this_name)
-        i = 1
-
         if this_name in self.atomic_symbols:
-            pass
+            sememe.destroy_children()
         else:
+            # Sanity check
             if this_name is not None:
                 assert this_name in self.compnd_symbols
-
-            try:
-                while p[i] is not None:
-                    if isinstance(p[i], Lexeme):
-                        pass
-                    elif isinstance(p[i].sememe, Sememe):
-                        if p[i].sememe.value() is None:
-                            for child in p[i].sememe.children():
-                                sememe.add_child(child)
-                        else:
-                            sememe.add_child(p[i].sememe)
-                    i += 1
-            except IndexError:
-                pass
 
         return namedtuple('literal', 'tokens sememe')(**{'tokens': tokens, \
                                                          'sememe': sememe})
