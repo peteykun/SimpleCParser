@@ -51,7 +51,9 @@ class Sememe:
     def add_child(self, child):
         assert isinstance(child, Sememe)
         self._children.append(child)
+        self.update_line_information(child)
 
+    def update_line_information(self, child):
         if self._min_line is None or child._min_line < self._min_line:
             self._min_line = child._min_line
 
@@ -140,7 +142,7 @@ class SimpleCParser(Parser):
     for keyword in keywords:
         if keyword == '_BOOL':
             keyword_map['_Bool'] = keyword
-        elif keyword =='_Complex':
+        elif keyword =='_COMPLEX':
             keyword_map['_Complex'] = keyword
         else:
             keyword_map[keyword.lower()] = keyword
@@ -450,6 +452,8 @@ class SimpleCParser(Parser):
                     sememe.add_lexeme(p[i])
                 elif isinstance(p[i].tokens, list):
                     tokens += p[i].tokens       # append
+                    sememe.update_line_information(p[i].sememe)
+
                     if p[i].sememe.value() is None:
                         for child in p[i].sememe.children():
                             sememe.add_child(child)
@@ -859,8 +863,10 @@ class SimpleCParser(Parser):
     def p_struct_or_union_specifier(self, p):
         """
         struct_or_union_specifier : struct_or_union IDENT LCURLY struct_declaration_list RCURLY
+          | struct_or_union TYPE_NAME LCURLY struct_declaration_list RCURLY
           | struct_or_union LCURLY struct_declaration_list RCURLY
           | struct_or_union IDENT
+          | struct_or_union TYPE_NAME
         """
         p[0] = self._compose(p)
 
